@@ -1,0 +1,71 @@
+﻿@using WebChat.Models
+@using WebChat_Model.Entities
+@model UserViewModel
+
+@{
+    ViewBag.Title = "UserDashBoard";
+}
+
+
+<script type="text/javascript">
+    function wsUrl(s) {
+        var l = window.location;
+        return ((l.protocol === "https:") ? "wss://" : "ws://") + l.hostname + (((l.port != 80) && (l.port != 443) && (l.port != "")) ? ":" + l.port : "") + s;
+    }
+
+    $(document).ready(function onDocReady(){
+
+        var socket;
+        if (typeof (WebSocket) !== 'undefined') {
+
+            socket = new WebSocket(wsUrl("@Url.Action("ProcessRequest", "Chat")"));
+        } else {
+            socket = new MozWebSocket(wsUrl("@Url.Action("ProcessRequest", "Chat")"));
+        }
+
+        socket.onmessage = function (msg) {
+            var messageAuthor;
+            messageAuthor = "#"+msg.data.toString().match(/\[[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{1,4} [0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}\]\s(\w+)/)[1];
+            var countRow = $(messageAuthor + " #newMsg")[0];
+            if(countRow.innerHTML===undefined || countRow.innerHTML=="")
+            {
+                countRow.innerHTML="1";
+            }
+            else {
+                var num = Number(countRow.innerHTML);
+                countRow.innerHTML= num + 1;
+            }
+        };
+
+        socket.onclose = function (event) {
+            alert('Связь с сервером потеряна. Пожалуйста, обновите страницу');
+        };
+
+    });
+</script>
+<fieldset>
+    <legend>Welcome to WebChat, @Model.CurrentUserName</legend>
+    <input style="float:right" type="button" value="Logout" onclick="location.href='@Url.Action("LogOut", "Auth")'" class="btn btn-default"/>
+    <table class="table-bordered">
+        <thead style="font-weight:bold">
+            <tr><td>UserName</td><td>Status</td><td>New messages</td></tr>
+        </thead>
+        <tbody>
+            @foreach (UserSession u in Model.OnlineUsers) {
+                if (u.Name != Model.CurrentUserName)
+                {
+                    <tr id="@u.Name">
+                        <td>@Html.ActionLink(u.Name,"ChatDialog","Chat", new { chatUser = u.Name.ToString() },null)</td>
+                        <td>@u.Status</td>
+                        <td id="newMsg"></td>
+                    </tr>
+                }
+            }
+        </tbody>
+
+    </table>
+
+</fieldset>
+
+
+

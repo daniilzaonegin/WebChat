@@ -1,0 +1,61 @@
+﻿@using WebChat.Models
+@using WebChat_Model.Entities
+@model ChatDialogViewModel
+@{
+    ViewBag.Title = "ChatDialog";
+}
+
+<script type="text/javascript">
+
+    function wsUrl(s) {
+        var l = window.location;
+        return (((l.protocol === "https:") ? "wss://" : "ws://") + l.hostname + (((l.port != 80) && (l.port != 443) && (l.port!="")) ? ":" + l.port : "") + s);
+    }
+
+    $(document).ready(function () {
+        var socket,
+            $txt = document.getElementById('message'),
+            $messages = document.getElementById('messages');
+        if (typeof (WebSocket) !== 'undefined') {
+            socket = new WebSocket(wsUrl("@Url.Action("ProcessRequest", "Chat")"));
+        } else {
+            socket = new MozWebSocket(wsUrl("@Url.Action("ProcessRequest", "Chat")"));
+        }
+        socket.onmessage = function (msg) {
+            var $el = document.createElement('p');
+            $el.innerHTML = msg.data;
+            $messages.appendChild($el);
+        };
+
+        socket.onclose = function (event) {
+            alert('Связь с сервером потеряна. Пожалуйста, обновите страницу');
+        };
+
+        document.getElementById('send').onclick = function () {
+            var data = {
+                msg: $txt.value,
+                to: '@Model.DialogUser',
+            };
+            socket.send(JSON.stringify(data));
+            $txt.value = '';
+        };
+
+    }
+    );
+</script>
+<div class="form-group">
+    <label class="top-left">Write messages to @Model.DialogUser</label>
+    <div class="glyphicon glyphicon-envelope"/>
+</div>
+<textarea type="text" id="message" class="form-control" rows="5" style="resize:none"></textarea>
+<button type="submit" value="send" id="send" class="btn btn-default">Send</button>
+<div id='messages'>
+    @foreach(Message m in Model.Messages)
+    {
+        <p>
+            @m.Timestamp.ToString(@"[dd/MM/yyyy HH:mm:ss]") @m.From: @m.Text
+        </p>
+    }
+</div>
+
+
